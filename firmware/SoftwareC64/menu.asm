@@ -146,6 +146,12 @@ LINE_SIZES = $033c  ;"MAX_LINE"-bytes to line lengths
         * = $1008
         }
         }
+        lda #$4c
+        sta STACK_START-3
+        lda #<print_load
+        sta STACK_START-2
+        lda #>print_load
+        sta STACK_START-1
         jsr fastload_init
         !ifdef VIC20 {
         } else { ; VIC20
@@ -354,6 +360,19 @@ no_crsr_left:
 no_home:
         cmp #134
         bne no_f3
+        
+        lda BA
+        clc
+        adc #$30
+        sta drive_number
+        
+        lda #'0'
+        sta load_run_text_patch
+        lda #'9'
+        sta load_run_text_patch+1
+        bne do_space    ;unconditional	
+
+        !if 0 {
         !ifdef VIC20 {
         lda #$2c
         sta skip_vic20_fastload
@@ -381,6 +400,7 @@ no_home:
         }
         }
         } ; VIC20
+        }
 no_f3:       
         cmp #$20
         beq do_space
@@ -950,6 +970,24 @@ load_menu_file:
         sta x_pos
         rts
 
+print_load:
+        lda #$04
+        ldx #$00
+        ldy #$00
+-       inx
+        bne -
+        iny
+        bne -
+        sec
+        sbc #$01
+        bne -
+        ldx #loadtextlen-1
+-       lda loadtext,x
+        jsr $ffd2
+        dex
+        bpl -
+        rts        
+
 .error
         ; Accumulator contains BASIC error code
 
@@ -1131,14 +1169,32 @@ load_run_text:
         !byte 'S'
         !byte 'y'
         !byte '3'
+load_run_text_patch:
         !byte '1'
         !byte '2'
+        !byte $0d
         !byte $0d
         !byte 'R'
         !byte 'u'
         !byte $0d
 load_run_text_len = *-load_run_text
 
+loadtext:
+        !byte 145
+        !byte 145
+        !byte '1'
+        !byte ','
+drive_number:
+        !byte '8'
+        !byte ','
+        !byte $22
+        !byte '*'
+        !byte $22
+        !byte 'o'
+        !byte 'L'
+loadtextlen = * - loadtext
+
+        
 buttomline:
         !ifdef VIC20 {
         !scr "<SPC>=mnt <ret/F3>=run"
