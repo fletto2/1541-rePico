@@ -484,13 +484,13 @@ fastload_c16_deactivated:
         dex
         bne -
 do_exit:
-        !ifdef VIC20 {
+        ldy #$80
         ldx #$00
-        ldy #$00
 -       inx
         bne -
         iny
         bne -
+        !ifdef VIC20 {
         jmp $fd35   ;jump to basic warm start
         } else { ; VIC20
         !ifdef C16 {
