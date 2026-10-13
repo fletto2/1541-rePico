@@ -1220,18 +1220,16 @@ L14E8:  LDA L14FD,X
         BNE L14E8
         JSR UNLSN
 
-        ;LDA #$02
-        LDY #$00
+        LDY #$80
         LDX #$00
-L1425:  DEX
-        BNE L1425
+L1419:  DEX
+        BNE L1419
         DEY
-        BNE L1425
-        ;SEC
-        ;SBC #$01
-        ;BNE L1425
-
-        RTS
+        BNE L1419
+        lda #$7d
+-       cmp $911f
+        bne -
+        rts
 
 L14FD:  !byte $4D,$2D,$45,<L041A, >L041A
 
@@ -1305,8 +1303,19 @@ do_vic_fastload:
         jsr L14DC   ;execute fastloader
         lda #$00    ; file #0
         clc
+        jsr vicload
+        lda $2c
+        cmp #$10    ;5k program ?
+        bne +
+
+        lda #$1e    ;screen to $1e00
+        sta $0288
+        lda #$f0
+        sta $9005   ;switch screen
+        jsr $e55f   ;clear screen
++       lda #$ff
         jmp vicload
-        ;!byte $02
+
 }
 fastload_stack_len = * - fastload_stack 
 

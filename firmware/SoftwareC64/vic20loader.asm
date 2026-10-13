@@ -138,9 +138,11 @@ vicload:
 L1600:  STX L16A0+1       ; init screen-write pointer low byte
 L1603:  STY L16A0+2       ; init screen-write pointer high byte
         !ifdef WITH_START_BYTE {
-        tax
-no_addr:ror
+no_addr:tax
+        ror
         sta $0a
+        ;lda #$f0
+        ;sta L1644
         txa 
         }
         LDX #$80
@@ -270,8 +272,7 @@ l_next1:
         sta $2b
 no_load_at_addr1:
         lda #l_next2- (lap_jump+2)
-        sta lap_jump+1
-        bne L1652
+        bne +
 
 l_next2:
         bit $0a
@@ -279,10 +280,10 @@ l_next2:
         sta L16A0+2
         sta $2c
 no_load_at_addr2:
-        lda #L16A0- (lap_jump+2)
-        sta lap_jump+1
         lda #$24
         sta lpatch_beq_away
+        lda #L16A0- (lap_jump+2)
++       sta lap_jump+1
         jmp L1652
         }
 
@@ -351,11 +352,16 @@ L0348:  STX READ_BUFFER
         JSR L0378
 L0351:  JSR L0393         ; self-modified: target patched to L0393/L0381/L048A below
         JSR L0378
+        !ifdef WITH_START_BYTE {
+        } else {
         LDA #<L0393
         STA L0351+1
         LDA #>L0393
         STA L0351+2       ; -> L0393 (restore default)
+        }
         JMP $F505
+        !ifdef WITH_START_BYTE {
+        } else {
 L0364:  JSR L0378
         JSR L036D
         JMP L0364
@@ -366,6 +372,7 @@ L0371:  DEY
         DEX
         BNE L0371
         RTS
+        }
 L0378:  LDA #$08
         EOR $1C00
         STA $1C00
@@ -455,9 +462,16 @@ L041A:
         LDA #$0A
         STA $1800
         JSR L0469
+        !ifdef WITH_START_BYTE {
+        lxa #$00
+        sta L0495+1
+        sta $1800
+        ;sta L03A2+1
+        } else {
         LDA #$00
         STA $1800
         LDX #$00
+        }
 L042A:  DEX
         BNE L042A
 L042D:  LDA #$F7
@@ -491,6 +505,7 @@ L045E:  LDA $00
         LDA $06
         BNE L0459
         BEQ L042D
+
 L0469:  LDA #$12
         STA $06
         LDA #$01
@@ -507,7 +522,14 @@ L0480:  LDA $00
         SEI
         LDA $06
         BNE L0471
+        !ifdef WITH_START_BYTE {
+        LDA #<L0393
+        STA L0351+1
+        LDA #>L0393
+        STA L0351+2       ; -> L0393 (restore default)
+        }
         RTS
+
 L048A:  LDX #$00
 L048C:  LDA READ_BUFFER+2,X
         AND #$3F
