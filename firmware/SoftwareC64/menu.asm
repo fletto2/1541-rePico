@@ -28,6 +28,8 @@
     ptr2 = $fd
     ptr3 = $f7
     D020 = $900f
+    
+    NUM_PAGES = >($8000-directory_start)
 
 } else  { ; VIC20
 
@@ -53,6 +55,7 @@
     ptr1 = $03
     ptr2 = $05
     ptr3 = $9f
+    NUM_PAGES = >($f300-directory_start)
 
 } else {
     VIDEORAM = $0400
@@ -76,10 +79,11 @@
     ptr1 = $fb
     ptr2 = $fd
     ptr3 = $f7
+    NUM_PAGES = >($d000-directory_start)
 }
 } ; VIC20
 
-    STACK_START = $0138
+    STACK_START = $0135
 
 tmp1 = $02
 tmp2 = $ff
@@ -146,12 +150,6 @@ LINE_SIZES = $033c  ;"MAX_LINE"-bytes to line lengths
         * = $1008
         }
         }
-        lda #$4c
-        sta STACK_START-3
-        lda #<print_load
-        sta STACK_START-2
-        lda #>print_load
-        sta STACK_START-1
         jsr fastload_init
         !ifdef VIC20 {
         } else { ; VIC20
@@ -372,36 +370,50 @@ no_home:
         sta load_run_text_patch+1
         bne do_space    ;unconditional	
 
-        !if 0 {
-        !ifdef VIC20 {
-        lda #$2c
-        sta skip_vic20_fastload
-        jmp do_space
-        } else { ; VIC20
-        !ifdef C16 {
-        ldx #$2c
-        stx fastload_c16_deactivated
-        bne do_space
-        } else {
-        !ifdef NTSC {
-        lda #$24
-        sta fix_for_normal_load_ntsc
-        bne do_space    ;unconditional	
-        } else {
-        inc fix_for_normal_load2
-        dec fix_for_normal_load3
-        lda #$4c
-        sta fix_for_normal_load
-        lda #<$ffd5 
-        sta fix_for_normal_load+1
-        lda #>$ffd5 
-        sta fix_for_normal_load+2
-        bne do_space    ;unconditional
-        }
-        }
-        } ; VIC20
-        }
 no_f3:       
+        !ifdef VIC20 {
+        cmp #135
+        bne no_f5
+        lda #$4c
+        sta enable_5k
+        lda #$20
+        bne do_space    ;unconditional
+
+do_5k:
+        ldx #$ff
+        sei
+        txa
+        cld
+        jsr new_fd8d
+        jmp $fd32
+new_fd8d:
+        lda #$00
+        tax
+fd90    sta $00,x
+        sta $0200,x
+        sta $0300,x
+        inx
+        bne fd90
+        ldx #$3c
+        ldy #$03
+        stx $b2
+        sty $b3
+        sta $c1
+        sta $97
+        sta $0281
+        tax
+        ldy #$1e
+        sty $0288
+        lda #$10
+        sta $0282
+        sta $c2
+        lda #$01
+        sta $c1
+        jmp $fe7b
+
+	
+no_f5:
+        }
         cmp #$20
         beq do_space
 
@@ -457,6 +469,7 @@ do_space:
         jsr block_write
         jsr wait_for_flipdisk
         !ifdef VIC20 {
+        ; do this later for vic20 for the fast loader
         } else {
         !ifdef DRIVE_RESET {
         jsr drive_initialize
@@ -504,6 +517,9 @@ fastload_c16_deactivated:
         dex
         bne -
 do_exit:
+        !ifdef VIC20 {
+        jsr drive_initialize    ;do this late for vic20, it is not done above
+        }
         ldy #$80
         ldx #$00
 -       inx
@@ -511,6 +527,8 @@ do_exit:
         iny
         bne -
         !ifdef VIC20 {
+enable_5k:
+        bit do_5k
         jmp $fd35   ;jump to basic warm start
         } else { ; VIC20
         !ifdef C16 {
@@ -971,21 +989,18 @@ load_menu_file:
         rts
 
 print_load:
-        lda #$04
-        ldx #$00
+        ldx #loadtextlen-1
+--      lda loadtext,x
+        jsr $ffd2
+        lda #$40
         ldy #$00
--       inx
-        bne -
-        iny
+-       iny
         bne -
         sec
         sbc #$01
         bne -
-        ldx #loadtextlen-1
--       lda loadtext,x
-        jsr $ffd2
         dex
-        bpl -
+        bpl --
         rts        
 
 .error
@@ -1308,6 +1323,7 @@ L14FD:  !byte $4D,$2D,$45,<L041A, >L041A
 
 sector_address:
 index:  !word 0
+        !byte NUM_PAGES ;maximum number of blocks for next "datafile"
         !ifdef CLEANUP_BLOCK_WRITTEN {
         !text "MENU"
         }
@@ -1331,49 +1347,33 @@ fastload_init:
 
 fastload_stack:
 !pseudopc STACK_START {
-skip_vic20_fastload:
-        jmp do_vic_fastload
-        lda #load_star_name_len
-        ldx #<load_star_name
-        ldy #>load_star_name
-        jsr $ffbd     ; call SETNAM
-        lda #$01
-        ldx BA
-        tay           ; $01 means: load to origin address
-        jsr $ffba     ; call SETLFS
-        lda #$00
-        jsr $ffd5
-        lda $ae
-        sta $2d
-        lda $af
-        sta $2e
-        rts        
-load_star_name:
-        !text ":*"
-load_star_name_len = * - load_star_name
-
+        jmp print_load
 do_vic_fastload:
         jsr L1476   ;initialize
         jsr L14DC   ;execute fastloader
         lda #$00    ; file #0
         clc
         jsr vicload
+        lda #$ff
+        jsr vicload
+
         lda $2c
         cmp #$10    ;5k program ?
         bne +
-
-        lda #$1e    ;screen to $1e00
+        lda #$00
+        sta $1000
+        lda #$10
+        sta $0282
+        lda #$1e
+        sta $0284        
         sta $0288
         lda #$f0
-        sta $9005   ;switch screen
-        jsr $e55f   ;clear screen
-+       lda #$ff
-        jmp vicload
-
+        sta $9005
+        jsr $e518
++       jmp $c474
+        
 }
 fastload_stack_len = * - fastload_stack 
-
-        rts
         
 
         } else { ;VIC20
@@ -1438,6 +1438,7 @@ fastload_0700:
 fastload_0700_len = *-fastload_0700
 fastload_stack:
 !pseudopc STACK_START {
+        jmp print_load
 load_fast:
         lda #load_star_name_len
         ldx #<load_star_name
@@ -1481,6 +1482,7 @@ fastload_init:
 
 fastload_stack:
 !pseudopc STACK_START {
+        jmp print_load
         lda #load_star_name_len
         ldx #<load_star_name
         ldy #>load_star_name
@@ -1539,10 +1541,9 @@ fastload_main_dst_ptr = *+2
 
 fastload_stack:
 !pseudopc STACK_START {
-fix_for_normal_load2 = *+1
-        lda #load_star_name_len-1
-fix_for_normal_load3 = *+1
-        ldx #<load_star_name+1
+        jmp print_load
+        lda #load_star_name_len
+        ldx #<load_star_name
         ldy #>load_star_name
         jsr $ffbd     ; call SETNAM
         lda #$01
@@ -1556,7 +1557,7 @@ fix_for_normal_load:
         jmp $f5a9
         !bin "fastload_0140.bin",,2+11+$2f
 load_star_name:     ; bug in fast loader : cannot handle ":*"
-        !text ":*"
+        !text "*"
 load_star_name_len = * - load_star_name
         }
 fastload_stack_len = * - fastload_stack      

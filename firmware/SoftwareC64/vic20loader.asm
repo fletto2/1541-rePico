@@ -129,7 +129,7 @@ L14F7:  !byte $4D,$2D,$57,<L0300, >L0300,$20
 
 
 STCK_CODE:
-        !pseudopc $0400 {
+        !pseudopc $bf00 {
 vicload:
         !ifdef WITH_START_BYTE {
         ; carry clear -> load at address in file
