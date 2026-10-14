@@ -90,17 +90,23 @@ void generate_directory_entry(const uint8_t* filename, const uint8_t filetype, c
     P[29]=(size>>8)&0xFF; // size high
 }
 
-size_t generate_menu_file(DIR* dir_obj, const uint8_t* dir_path, const uint8_t dest_track)
+size_t generate_menu_file(DIR* dir_obj, const uint8_t* dir_path, const uint8_t dest_track, const uint8_t max_blocks)
 {
     FILINFO     fb_dir_menu_entry;
 
     uint8_t*    P;
+    uint8_t*    P_limit = g64_tracks[NUM_TRACKS_STD];
     uint8_t*    file_sector_P  = g64_tracks[dest_track];
     const uint8_t*    charP = dir_path;
+    const char last_text[] = {">> OUT OF MEMORY <<"};
 
     char        file_extension[5]={0};
 
     P = file_sector_P;
+    if (0 < max_blocks)
+    {
+        P_limit = P+256*(max_blocks-1)+1;
+    }
     // create file-entry header
     *P++ = 0x01;
     *P++ = 0x08;
@@ -131,7 +137,7 @@ size_t generate_menu_file(DIR* dir_obj, const uint8_t* dir_path, const uint8_t d
         *P++ = 0;
     }
 
-    do
+    while (P < P_limit)
     {
         FRESULT fr = f_readdir(dir_obj, &fb_dir_menu_entry);
         if((0 == fb_dir_menu_entry.fname[0]) || (FR_OK != fr))
@@ -185,17 +191,22 @@ size_t generate_menu_file(DIR* dir_obj, const uint8_t* dir_path, const uint8_t d
         }
         while (0 != c);
     }
-    while(true);
+    if (P_limit < P)
+    {
+        *P++ = TYPE_UNKNOWN;
+        strcpy(P, last_text);
+        P += count_of(last_text);
+    }
 
     return (size_t)(P-file_sector_P);
 }
 
-void create_menu_image(const char* menu_path, DIR* dir_obj, uint8_t* id1_p, uint8_t* id2_p, uint8_t* num_tracks_p, char* image_name_p)
+void create_menu_image(const char* menu_path, DIR* dir_obj, uint8_t* id1_p, uint8_t* id2_p, uint8_t* num_tracks_p, char* image_name_p, const uint8_t datafile_limit)
 {
     /* create this disklayout
 
         T01  ====== upper limit
-        ..   |
+        ..   | {size limited to "datafile_limit"}
         T17  ^\_start DATAFILE (MENU_DATA_FILE) - start: MENU_DATA_TRACK    fixed
 
         T18  DIRECTORY TRACK
@@ -224,7 +235,7 @@ void create_menu_image(const char* menu_path, DIR* dir_obj, uint8_t* id1_p, uint
     generate_empty_image(my_id1,my_id2,num_max_tracks);
 
     // generates menu-datafile..
-    size_t menu_file_len = generate_menu_file(dir_obj, menu_path, SCRATCH_TRACK);
+    size_t menu_file_len = generate_menu_file(dir_obj, menu_path, SCRATCH_TRACK, datafile_limit);
 
     (void) fill_tracks_with_file(MENU_DATA_TRACK, g64_tracks[SCRATCH_TRACK], menu_file_len, FILL_UP, num_max_tracks, my_id1, my_id2);
 

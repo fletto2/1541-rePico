@@ -742,12 +742,13 @@ void show_start_message(void)
 
 void handle_menu_image(void)
 {
+    static uint8_t datafile_blklimit = 64;  // set initial limit to 64*256 bytes = 16kb
     FILINFO hmi_dir_entry;
 
     if (SELECTOR_IMAGE != akt_image_type)
     {
         // insert the virtual menu-image
-        insert_menu_image(current_path);
+        insert_menu_image(current_path, datafile_blklimit);
         infomode_update();
     } else {
         // we have the selector inserted.. now handle the selection
@@ -772,6 +773,7 @@ void handle_menu_image(void)
                 // simple approach: convert the complete track, all 19 sectors.. then select sector 2 and read 2 bytes
                 convert_gcr2d64track(DIRECTORY_TRACK);
                 selected_image_nr = *((uint16_t*) &d64_sector_puffer[1+2*D64_SECTOR_SIZE]);
+                datafile_blklimit = d64_sector_puffer[3+2*D64_SECTOR_SIZE];
 
                 if (0 != selected_image_nr)
                 {
@@ -796,7 +798,7 @@ void handle_menu_image(void)
                             // no valid image available / or we jumped into a folder
                             is_image_mount=false;
                             //rebuild the data-file
-                            insert_menu_image(current_path);
+                            insert_menu_image(current_path, datafile_blklimit);
                             infomode_update();
                         } else
                         {
@@ -810,7 +812,7 @@ void handle_menu_image(void)
     }
 }
 
-void insert_menu_image(char* menu_path)
+void insert_menu_image(char* menu_path, const uint8_t max_blocks)
 {
     FRESULT fr = mount_sdcard(menu_path);
     if (FR_OK == fr)
@@ -827,7 +829,7 @@ void insert_menu_image(char* menu_path)
             stop_bytetimer();
             send_byte_ready = false;            // disable VIA transfer
 
-            create_menu_image(menu_path, &dir_object, &id1, &id2, &num_max_tracks, image_filename);
+            create_menu_image(menu_path, &dir_object, &id1, &id2, &num_max_tracks, image_filename, max_blocks);
 
             akt_track_pos = 0;
             selected_track = (INIT_TRACK << 1);

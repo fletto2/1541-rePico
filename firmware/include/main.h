@@ -31,7 +31,7 @@ void filebrowser_refresh(void);
 void infomode_update(void);
 
 void handle_menu_image(void);
-void insert_menu_image(char* menu_path);
+void insert_menu_image(char* menu_path, const uint8_t max_blocks);
 
 uint16_t get_dir_entry_count(const char* entrycount_path);
 uint16_t seek_to_dir_entry(uint16_t entry_num, const char* seek_path);

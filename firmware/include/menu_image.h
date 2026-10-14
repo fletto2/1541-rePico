@@ -27,8 +27,8 @@ void generate_empty_image(const uint8_t image_id1, const uint8_t image_id2, cons
 void generate_bam(const char* const image_name, const uint8_t* const image_id_buffer);
 
 void generate_directory_entry(const uint8_t* filename, const uint8_t filetype, const uint8_t des_track, const uint8_t des_sector, const uint16_t size);
-size_t generate_menu_file(DIR* dir_obj, const uint8_t* dir_path, const uint8_t dest_track);
+size_t generate_menu_file(DIR* dir_obj, const uint8_t* dir_path, const uint8_t dest_track, const uint8_t max_blocks);
 
-void create_menu_image(const char* menu_path, DIR* dir_obj, uint8_t* id1_p, uint8_t* id2_p, uint8_t* num_tracks_p, char* image_name_p);
+void create_menu_image(const char* menu_path, DIR* dir_obj, uint8_t* id1_p, uint8_t* id2_p, uint8_t* num_tracks_p, char* image_name_p, const uint8_t datafile_limit);
 
 #endif
