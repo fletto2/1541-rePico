@@ -2,11 +2,17 @@ cmake_minimum_required(VERSION 3.13)
 
 set(PROJECT_INCLUDE ${PROJECT_SOURCE_DIR}/include)
 
-find_program(ACME_TOOL "acme" PATHS "/usr/local/bin;/usr/bin;/bin" NO_CACHE )
+find_program(ACME_TOOL   "acme"   PATHS "/usr/local/bin;/usr/bin;/bin" NO_CACHE )
+find_program(PETCAT_TOOL "petcat" PATHS "/usr/local/bin;/usr/bin;/bin" NO_CACHE )
 
-option(BUILD_MENUPRG    "Enable compilation of menu.prg" ON)
-option(COMPRESS_MENUPRG "Enable compression of menu.prg with dali" ON)
+option(BUILD_MENUPRG     "Enable compilation of menu.prg" ON)
+option(COMPRESS_MENUPRG  "Enable compression of menu.prg with dali" ON)
+option(BUILD_SELECTORPRG "Enable creation of selector.prg" ON)
+
 ### TODO: COMPRESS_MENUPRG is not considered .. dali prg compression is done always for now
+
+set(SELECTOR_PRG_SOURCE      "selector.bas")
+set(MENU_PRG_SOURCE          "menu.asm")
 
 set(INTRO_PRG_BINARY         "intro.prg")
 set(SELECTOR_PRG_BINARY      "selector.prg")
@@ -26,14 +32,30 @@ set(ACME_OPTIONS --format cbm --cpu 6510 -DNO_BASIC_HEADER=1)
 set(DALI_OPTIONS_C64 --sfx 0x0808)
 set(DALI_OPTIONS_C16 --sfx_plus4 0x1008)
 
+if(BUILD_SELECTORPRG)
+  if(PETCAT_TOOL)
+    ## convert selector basic-code to "prg" tokenized code
+    add_custom_command(
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      DEPENDS ${SELECTOR_PRG_SOURCE}
+      OUTPUT ${SELECTOR_PRG_BINARY}
+      COMMAND ${PETCAT_TOOL} -w2 -o ${SELECTOR_PRG_BINARY} -- ${SELECTOR_PRG_SOURCE}
+    )
+  else()
+    MESSAGE("### PETCAT not found - using precompiled selector prg ###")
+  endif()
+else()
+  MESSAGE("### using precompiled selector prg ###")
+endif()
+
 if(BUILD_MENUPRG)
   if(ACME_TOOL)
     ## Menu_pal - build
     add_custom_command(
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      DEPENDS menu.asm fastload_0140.bin fastload_e000.bin
+      DEPENDS ${MENU_PRG_SOURCE} fastload_0140.bin fastload_e000.bin
       OUTPUT tmp_pal.prg
-      COMMAND ${ACME_TOOL} ${ACME_OPTIONS} -o tmp_pal.prg menu.asm
+      COMMAND ${ACME_TOOL} ${ACME_OPTIONS} -o tmp_pal.prg ${MENU_PRG_SOURCE}
     )
     add_custom_command(
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -44,9 +66,9 @@ if(BUILD_MENUPRG)
 
     add_custom_command(
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      DEPENDS menu.asm exos_ntsc.asm
+      DEPENDS ${MENU_PRG_SOURCE} exos_ntsc.asm
       OUTPUT tmp_ntsc.prg
-      COMMAND ${ACME_TOOL} ${ACME_OPTIONS} -DNTSC=1 -o tmp_ntsc.prg menu.asm
+      COMMAND ${ACME_TOOL} ${ACME_OPTIONS} -DNTSC=1 -o tmp_ntsc.prg ${MENU_PRG_SOURCE}
     )
     add_custom_command(
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -57,9 +79,9 @@ if(BUILD_MENUPRG)
 
     add_custom_command(
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      DEPENDS menu.asm fastload_16_0700.bin fastload_16_f300.bin
+      DEPENDS ${MENU_PRG_SOURCE} fastload_16_0700.bin fastload_16_f300.bin
       OUTPUT tmp_c16.prg
-      COMMAND ${ACME_TOOL} ${ACME_OPTIONS} -DC16=1 -o tmp_c16.prg menu.asm
+      COMMAND ${ACME_TOOL} ${ACME_OPTIONS} -DC16=1 -o tmp_c16.prg ${MENU_PRG_SOURCE}
     )
     add_custom_command(
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -70,9 +92,9 @@ if(BUILD_MENUPRG)
 
     add_custom_command(
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      DEPENDS menu.asm vic20loader.asm
+      DEPENDS ${MENU_PRG_SOURCE} vic20loader.asm
       OUTPUT ${MENU_VIC20_PRG_BINARY}
-      COMMAND ${ACME_TOOL} ${ACME_OPTIONS} -DVIC20=1 -o ${MENU_VIC20_PRG_BINARY} menu.asm
+      COMMAND ${ACME_TOOL} ${ACME_OPTIONS} -DVIC20=1 -o ${MENU_VIC20_PRG_BINARY} ${MENU_PRG_SOURCE}
     )
   else()
     MESSAGE("### ACME not found - using precompiled prgs ###")

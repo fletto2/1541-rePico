@@ -12,7 +12,7 @@ thanks to [BensonRSI](https://github.com/BensonRSI) for adding debugging documen
 ## Features ##
 
 latest version:
-- software: 1.7.1
+- software: 1.7.2
 - hardware: 1.7.0
 
 ### Hardware ###
@@ -27,6 +27,7 @@ single board, size 59mm x 60 mm
   - SPI SD-Card adapter
   - Rotary-Encoder + Switch (KY-040 compatible)
   - Write-Protect-Signal
+  - passive Buzzer
 
 one size fits for all 1541 models.
 
@@ -43,14 +44,14 @@ one size fits for all 1541 models.
 - read and write access for both D64 & G64
 - sd-card hotswap feature (refresh of directory content)
 
-#### C64/C16/VIC20 Image Selector ####
+#### C64/C16/VC20 Image Selector ####
 
 - browsing through sd-card content via "virtual disk-image"
   - subdirectory support
   - 4 way scrolling
 - highlighting and selecting of different file-types (D64,G64,PRG,Folder)
 - simple mounting and also fastloading of selected entry
-- supports C64-PAL, C64-NTSC and C16 computers
+- supports C64-PAL, C64-NTSC,VC20 and C16 computers
 
 ## how to build ##
 
@@ -112,6 +113,7 @@ optional cmake variables are:
 | Variable | Values | Description |
 | :--- | :---: | :--- |
 | BUILD_MENUPRG | ON*/OFF | let ACME compile the provided menu.asm-code. Otherwise the shipped, precompiled "menu.prg" will be used. |
+| BUILD_SELECTORPRG | ON*/OFF | let PETCAT convert the boot-selector basic code to PRG. Otherwise the shipped, precompiled "selector.prg" will be used. |
 | COMPRESS_MENUPRG | ON*/OFF | uses dali binary compression to generate a smaller menu-prg object |
 | PCB_VERSION | 0..17* | defines which PCB version is used -> enables specific code features according to pcb-layout (like sound output) |
 
