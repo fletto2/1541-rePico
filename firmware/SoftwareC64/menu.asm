@@ -20,7 +20,7 @@
     VIDEORAM = $1000
     COLORRAM = $9400
     E518 = $E55F
-    BORDER_COLOR = $02
+    BORDER_COLOR = $06 
     LOAD = $ffd5
     BA = $ba
     ptr1 = $fb
@@ -184,7 +184,7 @@ restart:
         dey
         bne -
         !ifdef VIC20 {
-        lda #BORDER_COLOR+8
+        lda #BORDER_COLOR+8+1*16
         sta $900f
         } else { ; VIC20
         sta D020
@@ -1275,12 +1275,12 @@ mw_end:
 
 filetypecolor:
     !ifdef VIC20 {
-        !byte $04   ; unknown
-        !byte $04   ; none
+        !byte $02   ; unknown
+        !byte $02   ; none
         !byte $05   ; dir
-        !byte $03   ; d64
-        !byte $03   ; g64
-        !byte $01   ; prg
+        !byte $06   ; d64
+        !byte $06   ; g64
+        !byte $00   ; prg
 
 L1476:  LDA $ba
         JSR LISTEN
@@ -1381,8 +1381,11 @@ do_vic_fastload:
         sta ($2b),y
         inc $2c
         lda $2c
-        cmp #$10    ;5k program ?
+        cmp #$a0    ;modul ?
         bne +
+        jmp 64802   ;reset
++       cmp #$12    ;5k/8k program ?
+        beq +
         lda #$10
         sta $0282
         lda #$1e
