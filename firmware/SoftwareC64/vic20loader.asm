@@ -31,34 +31,19 @@ L1408:  PHA
         SEC
         SBC #$01
         BNE L1408
-;        JSR L14DC
-;        LDY #$80
-;        LDX #$00
-;L1419:  DEX
-;        BNE L1419
-;        DEY
-;        BNE L1419
-;        LDA #$02
-;        LDY #$00
-;        LDX #$00
-;L1425:  DEX
-;        BNE L1425
-;        DEY
-;        BNE L1425
-;        SEC
-;        SBC #$01
-;        BNE L1425
         RTS
 
-L1431:  STA $FF
-        LDA #$00
-        STA $FE
-        LDY #$00
-L1451:  LDA STCK_CODE,Y
-        STA ($FE),Y
-        INY
-        CPY #STCK_CODE_LEN
-        BNE L1451
+L1431: 
+        ldx #STCK_CODE1_LEN
+-       lda STCK_CODE1-1,x
+        sta stck_code1-1,x
+        dex
+        bne -
+        ldx #STCK_CODE2_LEN
+-       lda STCK_CODE2-1,x
+        sta stck_code2-1,x
+        dex
+        bne -
         RTS
 
 
@@ -128,8 +113,9 @@ L14F7:  !byte $4D,$2D,$57,<L0300, >L0300,$20
 
 
 
-STCK_CODE:
-        !pseudopc $bf00 {
+STCK_CODE1:
+        !pseudopc $02c0 {
+stck_code1:
 vicload:
         !ifdef WITH_START_BYTE {
         ; carry clear -> load at address in file
@@ -168,13 +154,19 @@ L1626:  JSR L1631
 L1629:  JSR L1631
         DEX
         BNE L160D
-        BCC L1632
+        BCS L1631
+        jmp L1632
 !ifdef WITH_START_BYTE {
         ;ldx L16A0+1
         ;ldy L16A0+2
 }
 L1631:  RTS
+        }
+STCK_CODE1_LEN = * - STCK_CODE1
 
+STCK_CODE2:
+        !pseudopc $033c {
+stck_code2:
         !ifdef WITH_START_BYTE {
 L1632_pre:
         lda #$89
@@ -280,8 +272,6 @@ l_next2:
         sta L16A0+2
         sta $2c
 no_load_at_addr2:
-        lda #$24
-        sta lpatch_beq_away
         lda #L16A0- (lap_jump+2)
 +       sta lap_jump+1
         jmp L1652
@@ -299,7 +289,7 @@ L16BC:
         }
 
 
-STCK_CODE_LEN = * - STCK_CODE
+STCK_CODE2_LEN = * - STCK_CODE2
 
 floppy_code:
         !pseudopc $0300 {
@@ -378,20 +368,6 @@ L0378:  LDA #$08
         STA $1C00
         RTS
 L0381:  
-        !ifdef WITH_START_BYTE {
-        ldx #$00
-lpatch_beq_away:
-        beq L0395
-        }
-        LDX READ_BUFFER
-        LDY READ_BUFFER+1
-        DEX
-        DEX
-        STX READ_BUFFER+2
-        STY READ_BUFFER+3
-        LDX #$02
-        BNE L0395
-
 L0393:  LDX #$00
 L0395:  LDY READ_BUFFER
         INY
@@ -492,10 +468,6 @@ L0445:  LDA L05B2,X
         STA L0351+1
         LDA #>L0381
         STA L0351+2       ; -> L0381
-        !ifdef WITH_START_BYTE {
-        lda #$f0
-        sta lpatch_beq_away
-        }
 L0459:  LDA #$E0
         STA $00
         CLI

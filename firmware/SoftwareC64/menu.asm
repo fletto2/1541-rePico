@@ -20,8 +20,7 @@
     VIDEORAM = $1000
     COLORRAM = $9400
     E518 = $E55F
-    BORDER_COLOR = $04
-    SELECTOR_COLOR = $0a
+    BORDER_COLOR = $02
     LOAD = $ffd5
     BA = $ba
     ptr1 = $fb
@@ -109,9 +108,11 @@ DRIVE_RESET = 1;
 DRIVE_INITIALIZE = 1
 
 
-
+!ifdef VIC20 {
+LINE_SIZES = stck_code1 - MAX_LINE
+} else {
 LINE_SIZES = $033c  ;"MAX_LINE"-bytes to line lengths
-
+}
 
 !macro dec_word .x {
         lda .x
@@ -794,7 +795,6 @@ do_print:
         beq end_line
         iny
         bne -
-        ;!byte $02
 string_ends:
         sty tmp2
         lda #$20
@@ -1260,8 +1260,8 @@ mw_end:
 
 filetypecolor:
     !ifdef VIC20 {
-        !byte $02   ; unknown
-        !byte $02   ; none
+        !byte $04   ; unknown
+        !byte $04   ; none
         !byte $05   ; dir
         !byte $03   ; d64
         !byte $03   ; g64
@@ -1273,8 +1273,7 @@ L1476:  LDA $ba
         JSR SECOND
         LDA #$49
         JSR CIOUT
-        JSR UNLSN
-        RTS
+        jmp UNLSN
 
 
 L14DC:  LDA $ba
@@ -1342,7 +1341,6 @@ fastload_init:
         sta STACK_START-1,x
         dex
         bne -
-        lda #>vicload
         !src "vic20loader.asm"
 
 fastload_stack:
@@ -1353,15 +1351,22 @@ do_vic_fastload:
         jsr L14DC   ;execute fastloader
         lda #$00    ; file #0
         clc
-        jsr vicload
+        jsr vicload        
+        ldx L16A0+1
+        ldy L16A0+2
+        stx $2d
+        sty $2e
         lda #$ff
         jsr vicload
 
+        dec $2c
+        lda #0
+        ldy #$ff
+        sta ($2b),y
+        inc $2c
         lda $2c
         cmp #$10    ;5k program ?
         bne +
-        lda #$00
-        sta $1000
         lda #$10
         sta $0282
         lda #$1e
@@ -1495,7 +1500,6 @@ FASTLOAD_EXOS:
         lda $01
         pha
         lda #$35
-fix_for_normal_load_ntsc:
         sta $01
         lda #$00
         jsr $ffd5
@@ -1552,13 +1556,17 @@ fastload_stack:
         jsr $ffba     ; call SETLFS
 
         lda #$00
-fix_for_normal_load:
         !bin "fastload_0140.bin",$2c,2+11
-        jmp $f5a9
+        jmp +
         !bin "fastload_0140.bin",,2+11+$2f
 load_star_name:     ; bug in fast loader : cannot handle ":*"
         !text "*"
 load_star_name_len = * - load_star_name
++       ldx $ae
+        ldy $af
+        stx $2d
+        sty $2e
+        jmp $f5a9
         }
 fastload_stack_len = * - fastload_stack      
 
