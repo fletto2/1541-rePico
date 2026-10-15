@@ -28,7 +28,7 @@
     ptr3 = $f7
     D020 = $900f
     
-    NUM_PAGES = >($8000-directory_start)
+    NUM_PAGES = >($2000-directory_start)
 
 } else  { ; VIC20
 
@@ -50,7 +50,7 @@
     BORDER_COLOR = $3b
     SELECTOR_COLOR = $18
     LOAD = $ffd5
-    BA = $0137
+    BA = $0134
     ptr1 = $03
     ptr2 = $05
     ptr3 = $9f
@@ -151,6 +151,12 @@ LINE_SIZES = $033c  ;"MAX_LINE"-bytes to line lengths
         * = $1008
         }
         }
+        ;first, set how much memory will can use
+        lda $0284   ;basic end
+        sec
+        sbc #>directory_start
+        sta number_of_pages
+        
         jsr fastload_init
         !ifdef VIC20 {
         } else { ; VIC20
@@ -365,6 +371,11 @@ no_home:
         adc #$30
         sta drive_number
         
+        !ifdef C16 {
+        ldx #$2c
+        stx fastload_c16_deactivated
+        jsr drive_reset
+        }
         lda #'0'
         sta load_run_text_patch
         lda #'9'
@@ -992,7 +1003,11 @@ print_load:
         ldx #loadtextlen-1
 --      lda loadtext,x
         jsr $ffd2
+        !ifdef C16 {
+        lda #$60
+        } else {
         lda #$40
+        }
         ldy #$00
 -       iny
         bne -
@@ -1322,6 +1337,7 @@ L14FD:  !byte $4D,$2D,$45,<L041A, >L041A
 
 sector_address:
 index:  !word 0
+number_of_pages:
         !byte NUM_PAGES ;maximum number of blocks for next "datafile"
         !ifdef CLEANUP_BLOCK_WRITTEN {
         !text "MENU"
