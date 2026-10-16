@@ -366,15 +366,16 @@ no_home:
         cmp #134
         bne no_f3
         
+        !ifndef C16 {
         lda BA
         clc
         adc #$30
         sta drive_number
+        }
         
         !ifdef C16 {
-        ldx #$2c
-        stx fastload_c16_deactivated
-        jsr drive_reset
+        lda #$2c
+        sta fastload_c16_deactivated
         }
         lda #'0'
         sta load_run_text_patch
@@ -1212,6 +1213,15 @@ load_run_text_len = *-load_run_text
 loadtext:
         !byte 145
         !byte 145
+
+        !ifdef C16 {
+        !byte $22
+        !byte '*'
+        !byte $22
+        !byte 'l'
+        !byte 'D'
+
+        } else {
         !byte '1'
         !byte ','
 drive_number:
@@ -1222,6 +1232,7 @@ drive_number:
         !byte $22
         !byte 'o'
         !byte 'L'
+        }
 loadtextlen = * - loadtext
 
         
