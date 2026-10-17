@@ -114,7 +114,7 @@ L14F7:  !byte $4D,$2D,$57,<L0300, >L0300,$20
 
 
 STCK_CODE1:
-        !pseudopc $02c0 {
+        !pseudopc $02ad {
 stck_code1:
 vicload:
         !ifdef WITH_START_BYTE {
@@ -129,6 +129,10 @@ no_addr:tax
         sta $0a
         ;lda #$f0
         ;sta L1644
+        lda $900f
+        sta ret_900f
+        eor #$05
+        sta $900f
         txa 
         }
         LDX #$80
@@ -156,11 +160,17 @@ L1629:  JSR L1631
         BNE L160D
         BCS L1631
         jmp L1632
-!ifdef WITH_START_BYTE {
-        ;ldx L16A0+1
-        ;ldy L16A0+2
-}
 L1631:  RTS
+
+!ifdef WITH_START_BYTE {
+back_to_caller:
+ret_900f = *+1
+        lda #$00
+        sta $900f
+        ldx L16A0+1
+        ldy L16A0+2
+        rts
+    }        
         }
 STCK_CODE1_LEN = * - STCK_CODE1
 
@@ -251,6 +261,9 @@ L16B5:  LDA #$00
         BNE L16BC
 L16B9:  
         !ifdef WITH_START_BYTE {
+        lda $900f
+        eor #$05
+        sta $900f
         JMP L1632_pre
         } else {
         JMP L1632
@@ -284,7 +297,7 @@ L16BC:
         lda #l_next1- (lap_jump+2)
         sta lap_jump+1
         }
-        RTS
+        jmp back_to_caller
 
         }
 

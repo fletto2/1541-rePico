@@ -964,8 +964,6 @@ load_menu_file:
         lda #$05
         sec
         jsr vicload
-        ldx L16A0+1
-        ldy L16A0+2
         stx directory_end
         sty directory_end+1
         lda #$ff
@@ -1379,8 +1377,6 @@ do_vic_fastload:
         lda #$00    ; file #0
         clc
         jsr vicload        
-        ldx L16A0+1
-        ldy L16A0+2
         stx $2d
         sty $2e
         lda #$ff
