@@ -28,6 +28,7 @@
     ptr3 = $f7
     D020 = $900f
     
+    RASTER_LINE_READ = $9004
     NUM_PAGES = >($2000-directory_start)
 
 } else  { ; VIC20
@@ -55,6 +56,9 @@
     ptr2 = $05
     ptr3 = $9f
     NUM_PAGES = >($f300-directory_start)
+
+    TED_JOY    = $ff08        ; TED joystick/keyboard register
+    KB_LATCH   = $fd30        ; Keyboard latch
 
 } else {
     VIDEORAM = $0400
@@ -284,13 +288,98 @@ repaint:
         stx current_cursor_last_position
         }
 keyloop:
+        
         !ifdef VIC20 {
         jsr set_scroll_bar
         }
+        ;ask for joystick
+        !ifdef VIC20 {
+            lax     $9122
+            and #$7f
+            sta     $9122
+            lda     $9111
+            lsr
+            lsr
+            ora     #$10
+            bit     $9120
+            bmi     +
+            and     #$ef
++
+            stx $9112
+            and #$1f
+            cmp #$1f
+        } else {
+        !ifdef C16 {
+joy_c16_value = *+1
+            lda #$ff
+            and #$cf
+            cmp #$cf
+        } else {
+            lda $dc00
+            and #$1f
+            cmp #$1f
+        }
+        }
+            beq +
+
+joy_scroll_speed = *+1
+            ldy #10
+--
+            !ifdef VIC20 {
+            ldx #$00
+            } else {
+            ldx #$fc
+            }
+-           cpx RASTER_LINE_READ
+            bne -
+            inx
+            !ifdef C16 {
+            inx     ;bit 0 not used for C16
+            }
+-           cpx RASTER_LINE_READ
+            bne -
+            dey
+            bne --
+            
+            ldx #1
+            stx joy_scroll_speed
+            
+            lsr
+            bcc do_cursorup
+            lsr
+            bcc do_cursordown
+            lsr
+            bcc do_f1
+            !ifdef VIC20 {
+            lsr
+            bcc jmp_do_space
+            }
+            lsr
+            bcc do_f7
+            !ifdef VIC20 {
+            ;for vic20, fire button and right are switched
+            bcs + 
+            } else {
+            lsr
+            !ifdef C16 {
+            ;for C16, fire is bit 6+7, not 4
+            lsr
+            lsr
+            bcc jmp_do_space
+            lsr
+            }
+            bcs +
+            }
+jmp_do_space:
+            jmp  do_space
++
+        ldx #10
+        stx joy_scroll_speed
         jsr $ffe4
         beq keyloop
         cmp #17    ;cursor down
         bne no_cursor_down
+do_cursordown:
         lda current_cursor_position
 maxline_cmp_value = *+1
         cmp #MAX_LINE-1
@@ -304,6 +393,7 @@ do_cursor_down:
 no_cursor_down:
         cmp #145    ;cursor up
         bne no_cursor_up
+do_cursorup:
         lda current_cursor_position
         beq do_scroll_up
         dec current_cursor_position                
@@ -315,6 +405,7 @@ do_scroll_up:
 no_cursor_up:
         cmp #136    ;f7
         bne no_f7
+do_f7:
         lda #MAX_LINE
 -       pha
         jsr try_scroll_down
@@ -328,6 +419,7 @@ no_cursor_up:
 
 no_f7:  cmp #133    ;f1
         bne no_f1
+do_f1:
         lda #MAX_LINE
 -       pha
         jsr try_scroll_up
@@ -343,15 +435,16 @@ no_f1:  cmp #29     ;cursor right
         bne no_crsr_right
         lda x_pos
         cmp #255-MAX_X
-        bcs keyloop
-        inc x_pos
+        bcc +
+        jmp keyloop
++       inc x_pos
         jmp repaint
         
 no_crsr_right:
         cmp #157    ;cursor left
         bne no_crsr_left
         lda x_pos
-        beq keyloop
+        beq do_keyloop
         dec x_pos
         jmp repaint
         
@@ -561,6 +654,7 @@ enable_5k:
         } ; VIC20
 
         !ifndef VIC20 {
+        !align $ff,0
 irq:    ldy #SELECTOR_COLOR
         !ifndef C16 {
         lda RASTER_LINE_READ
@@ -627,7 +721,26 @@ current_cursor_position_other_irq = *+1
         sta VIC_IRQ_STATUS
 c16irqcont:
         cli
-        jsr $DB11       ;tastatur abfragen
+        jsr $DB11       ;check keyboard
+        
+        lda #$ff
+        sta KB_LATCH
+
+        ; 2. Poll Joystick 1
+        ldx #$fb              ; Select Joystick 1 (%11111011)
+        stx TED_JOY
+        lda TED_JOY           ; Read Joystick 1 lines
+
+        ; 3. Poll Joystick 2
+        ldx #$fd              ; Select Joystick 2 (%11111101)
+        stx TED_JOY
+        and TED_JOY           ; Read Joystick 2 lines
+
+        sta joy_c16_value
+        ; 4. Re-enable standard system keyboard scanning (optional, but good practice)
+        lda #$00
+        sta KB_LATCH
+        
         pla
         tay
         pla

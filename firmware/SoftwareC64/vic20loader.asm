@@ -94,20 +94,32 @@ L14A2:  LDA floppy_code,X
         STA L14A2+2
         RTS
 
-;L14DC:  LDA $ba
-;        JSR LISTEN
-;        LDA #$6F
-;        JSR SECOND
-;        LDX #$00
-;L14E8:  LDA L14FD,X
-;        JSR CIOUT
-;        INX
-;        CPX #$05
-;        BNE L14E8
-;        JSR UNLSN
-;        RTS
+        !ifdef CODE_FROM_MENU {
+L14DC:  LDA $ba
+        JSR LISTEN
+        LDA #$6F
+        JSR SECOND
+        LDX #$00
+L14E8:  LDA L14FD,X
+        JSR CIOUT
+        INX
+        CPX #$05
+        BNE L14E8
+        JSR UNLSN
 
-;L14FD:  !byte $4D,$2D,$45,<L041A, >L041A
+        LDY #$80
+        LDX #$00
+L1419:  DEX
+        BNE L1419
+        DEY
+        BNE L1419
+        lda #$7d
+-       cmp $911f
+        bne -
+        rts
+
+L14FD:  !byte $4D,$2D,$45,<L041A, >L041A
+        }
 
 L14F7:  !byte $4D,$2D,$57,<L0300, >L0300,$20
 
@@ -121,8 +133,8 @@ vicload:
         ; carry clear -> load at address in file
         bcc no_addr
         }
-L1600:  STX L16A0+1       ; init screen-write pointer low byte
-L1603:  STY L16A0+2       ; init screen-write pointer high byte
+L1600:  STX L16A0+1       ; init pointer low byte
+L1603:  STY L16A0+2       ; init pointer high byte
         !ifdef WITH_START_BYTE {
 no_addr:tax
         ror
@@ -242,7 +254,7 @@ L1695:  STA L16B5+1       ; patches LDA #imm value at L16B5
         CMP ($00,X)
         INX
 L169D:  JMP L1652
-L16A0:  STA $0400,X       ; L16A0+1/+2 double as the screen-write pointer
+L16A0:  STA $0400,X       ; L16A0+1/+2 double as the write pointer
         INX
 L16A4:  CPX #$00
         BNE L1652
@@ -296,11 +308,11 @@ L16BC:
         sta dex_skip
         lda #l_next1- (lap_jump+2)
         sta lap_jump+1
-        }
         jmp back_to_caller
-
+        } else {
+        rts
         }
-
+        }
 
 STCK_CODE2_LEN = * - STCK_CODE2
 
