@@ -160,7 +160,7 @@ void menu_refresh()
         display_setcursor(0,i);
         if (current_menu->lcd_cursor_pos == i)
         {
-            display_setinverse();
+            display_setinverse(true);
         }
         display_string(current_menu->entry_list[i+current_menu->lcd_window_pos].name);
 
@@ -188,10 +188,7 @@ void menu_refresh()
 
     }
 
-    // display_setcursor(0, current_menu->lcd_cursor_pos);
-    // display_data(current_menu->lcd_cursor_char);
-
-    if(current_menu->lcd_window_pos > 0)
+    if(0 < current_menu->lcd_window_pos)
     {
         display_setcursor(current_menu->lcd_col_count-1, 0);
         display_data(current_menu->lcd_more_top_char);
@@ -202,6 +199,10 @@ void menu_refresh()
         display_setcursor(current_menu->lcd_col_count-1, current_menu->lcd_row_count-1);
         display_data(current_menu->lcd_more_down_char);
     }
+
+    display_setcursor(0, current_menu->lcd_cursor_pos);
+    display_setinverse(true);
+    // display_data(current_menu->lcd_cursor_char);
 }
 
 void menu_set_entry_var1(MENU_STRUCT *menu, const uint8_t id, const uint8_t var1)

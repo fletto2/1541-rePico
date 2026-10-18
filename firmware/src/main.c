@@ -991,7 +991,7 @@ void filebrowser_update(uint8_t key_code)
     //// Filename Scrolling
     ++fbup_wait_counter0;
 
-    if((fb_current_line_offset > 0) && (fbup_wait_counter0 >= 300000))
+    if((0 < fb_current_line_offset) && (300000 <= fbup_wait_counter0))
     {
         fbup_wait_counter0 = 0;
 
@@ -1001,7 +1001,7 @@ void filebrowser_update(uint8_t key_code)
             if(!fb_line_scroll_direction)
             {
                 ++fb_line_scroll_pos;
-                if(fb_line_scroll_pos >= fb_current_line_offset)
+                if(fb_current_line_offset <= fb_line_scroll_pos)
                 {
                     fb_line_scroll_end_begin_wait = 6;
                     fb_line_scroll_direction = 1;
@@ -1010,16 +1010,18 @@ void filebrowser_update(uint8_t key_code)
             else
             {
                 --fb_line_scroll_pos;
-                if(fb_line_scroll_pos == 0)
+                if(0 == fb_line_scroll_pos)
                 {
                     fb_line_scroll_end_begin_wait = 6;
                     fb_line_scroll_direction = 0;
                 }
             }
 
-            display_setcursor(2,fb_cursor_pos);
+            display_setcursor(1,fb_cursor_pos);
             display_data('\xFF');
-            display_print(fb_dir_entry[fb_cursor_pos].fname,fb_line_scroll_pos, LCD_LINE_SIZE-3 );
+            display_print(fb_dir_entry[fb_cursor_pos].fname,fb_line_scroll_pos, LCD_LINE_SIZE-2 );
+            display_setcursor(0,fb_cursor_pos);
+            display_setinverse(true);
         }
         else
         {
@@ -1148,10 +1150,10 @@ void filebrowser_refresh(void)
 
     for (uint8_t j=0; j<i; j++)
     {
-        display_setcursor(1,j);
-        if (fb_cursor_pos==j)
+        display_setcursor(0,j);
+        if (fb_cursor_pos == j)
         {
-            display_setinverse();
+            display_setinverse(true);
         }
         if(fb_dir_entry[j].fattrib & AM_DIR)
         {
@@ -1160,12 +1162,8 @@ void filebrowser_refresh(void)
             display_data(' ');
         }
 
-        display_print(fb_dir_entry[j].fname, 0, LCD_LINE_SIZE-3);
+        display_print(fb_dir_entry[j].fname, 0, LCD_LINE_SIZE-2);
     }
-
-    // display_setcursor(0, fb_cursor_pos);
-    // display_data(display_pointer_char);
-
 
     if(fb_window_pos > 0)
     {
@@ -1179,8 +1177,12 @@ void filebrowser_refresh(void)
         display_data(display_more_down_char);
     }
 
+    display_setcursor(0, fb_cursor_pos);
+    display_setinverse(true);
+    // display_data(display_pointer_char);
+
     // Für Scrollenden Filename
-    int8_t var = (int8_t)strlen(fb_dir_entry[fb_cursor_pos].fname) - (LCD_LINE_SIZE-3);
+    int8_t var = (int8_t)strlen(fb_dir_entry[fb_cursor_pos].fname) - (LCD_LINE_SIZE-2);
     if(var < 0)
         fb_current_line_offset = 0;
     else

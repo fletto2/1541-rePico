@@ -117,6 +117,7 @@ void lcd_setup( void )
 // Sendet ein Datenbyte an das LCD via pcf8574 output
 void lcd_data( const uint8_t data )
 {
+    if (0xFF == data) { return; }
     lcd_out_enable( ( data     & 0xF0) | LCD_RS | LCD_BACKLIGHT );    // zuerst die oberen, 
     lcd_out_enable( ((data<<4) & 0xF0) | LCD_RS | LCD_BACKLIGHT );    // dann die unteren 4 Bit senden
 
@@ -139,6 +140,10 @@ void lcd_clear( void )
 {
     lcd_command( LCD_CLEAR_DISPLAY );
     sleep_ms( LCD_CLEAR_DISPLAY_MS );
+    lcd_command( LCD_SET_DISPLAY |
+                LCD_DISPLAY_ON |
+                LCD_CURSOR_OFF |
+                LCD_BLINKING_OFF );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -147,6 +152,10 @@ void lcd_home( void )
 {
     lcd_command( LCD_CURSOR_HOME );
     sleep_ms( LCD_CURSOR_HOME_MS );
+    lcd_command( LCD_SET_DISPLAY |
+                LCD_DISPLAY_ON |
+                LCD_CURSOR_OFF |
+                LCD_BLINKING_OFF );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -213,8 +222,12 @@ void lcd_setbright( bool bright_on )
 
 ////////////////////////////////////////////////////////////////////////////////
 // set "inverse" mode for next display data
-void lcd_setinverse(void)
+void lcd_setinverse(bool inverse)
 {
     //  lcd_inverse = true;
-    lcd_data(0x03); // show arrow instead ...
+    // enable CURSOR at current possition...
+    lcd_command( LCD_SET_DISPLAY |
+                 LCD_DISPLAY_ON |
+                 LCD_CURSOR_ON |
+                 LCD_BLINKING_ON );
 }

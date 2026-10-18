@@ -256,8 +256,8 @@ void oled_setbright( bool bright_on )
 
 ////////////////////////////////////////////////////////////////////////////////
 // set "inverse" mode for next display data
-void oled_setinverse(void)
+void oled_setinverse(bool inverse)
 {
-    oled_inverse = true;
+    oled_inverse = inverse;
 }
 
