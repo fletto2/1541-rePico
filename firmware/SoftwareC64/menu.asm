@@ -1236,12 +1236,12 @@ loadtextlen = * - loadtext
         
 buttomline:
         !ifdef VIC20 {
-        !scr "<SPC>=mnt <ret/F3>=run"
+        !scr "<SPC>=mnt <RET/F3>=run"
         } else { ; VIC20
         !ifdef C16 {
-        !scr "<SPC>=mnt <ret/F2>=run F1=pgup HLP=pgdwn"
+        !scr "<SPC>=mnt RET=run F2=load F1=up HLP=down"
         } else {
-        !scr "<SPC>=mnt <ret/F3>=run  F1=pgup F7=pgdwn"
+        !scr "<SPC>=mnt RET=run F3=load  F1=up F7=down"
         }
         } ; VIC20
 
