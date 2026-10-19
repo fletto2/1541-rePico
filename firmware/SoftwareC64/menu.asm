@@ -721,7 +721,6 @@ current_cursor_position_other_irq = *+1
         sta VIC_IRQ_STATUS
 c16irqcont:
         cli
-        jsr $DB11       ;check keyboard
         
         lda #$ff
         sta KB_LATCH
@@ -740,6 +739,8 @@ c16irqcont:
         ; 4. Re-enable standard system keyboard scanning (optional, but good practice)
         lda #$00
         sta KB_LATCH
+
+        jsr $DB11       ;check keyboard
         
         pla
         tay
